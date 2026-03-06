@@ -66,20 +66,24 @@ function fn_startExpressServer ()
     //router
     c_router.fn_create(c_app);
 
-    let v_https = require('https');
-    let v_fs = require('fs');
-    console.log (global.Colors.Log + "READING " + global.m_serverconfig.m_configuration.ssl_key_file + global.Colors.Reset);
-    let v_keyFile = v_fs.readFileSync(v_path.join(__dirname, global.m_serverconfig.m_configuration.ssl_key_file));
-    console.log (global.Colors.Log + "READING " + global.m_serverconfig.m_configuration.ssl_cert_file + global.Colors.Reset);
-    let v_certFile = v_fs.readFileSync(v_path.join(__dirname, global.m_serverconfig.m_configuration.ssl_cert_file));
-    let v_options = {
-        key: v_keyFile,
-        cert: v_certFile
-    };
-
-
     // start listening
-    v_https.createServer(v_options, c_app).listen(c_app.get('port'));
+    if (global.m_serverconfig.m_configuration.enable_SSL === true
+        && global.m_serverconfig.m_configuration.ssl_key_file
+        && global.m_serverconfig.m_configuration.ssl_cert_file) {
+        let v_https = require('https');
+        let v_fs = require('fs');
+        console.log (global.Colors.Log + "READING " + global.m_serverconfig.m_configuration.ssl_key_file + global.Colors.Reset);
+        let v_keyFile = v_fs.readFileSync(v_path.join(__dirname, global.m_serverconfig.m_configuration.ssl_key_file));
+        console.log (global.Colors.Log + "READING " + global.m_serverconfig.m_configuration.ssl_cert_file + global.Colors.Reset);
+        let v_certFile = v_fs.readFileSync(v_path.join(__dirname, global.m_serverconfig.m_configuration.ssl_cert_file));
+        let v_options = {
+            key: v_keyFile,
+            cert: v_certFile
+        };
+        v_https.createServer(v_options, c_app).listen(c_app.get('port'));
+    } else {
+        c_app.listen(c_app.get('port'));
+    }
 
 
     console.log (global.Colors.Success + "[OK] Web Server Started" + global.Colors.Reset);
