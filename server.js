@@ -49,7 +49,7 @@ function fn_startExpressServer ()
 
 
     //settings
-    c_app.set('port', process.env.PORT || global.m_serverconfig.m_configuration.server_port);
+    c_app.set('port', global.m_serverconfig.m_configuration.server_port);
     c_app.set('views', v_path.join(__dirname, 'views'));
     
     //view engine & main template
