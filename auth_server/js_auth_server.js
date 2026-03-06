@@ -39,12 +39,12 @@ const v_database_manager = require ("./js_database_manager");
 /**
  * Main function to start Authentication Service.
  */
-async function fn_startServer ()
+function fn_startServer ()
 {
     console.log (global.Colors.Success + "[OK] Auth Server Started" + global.Colors.Reset);
 
 
-    await v_database_manager.fn_initialize ();
+    v_database_manager.fn_initialize ();
     v_sessionManager.fn_initialize();
     v_account_manager.fn_initialize();
     v_commServerManager.fn_initialize();

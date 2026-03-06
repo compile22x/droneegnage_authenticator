@@ -1,141 +1,113 @@
 "use strict";
 
+const fs = require('fs');
 const path = require('path');
-// Optional: Uncomment for password hashing
-// const bcrypt = require('bcrypt');
 
 const info_field = 'db_info';
 
+/**
+ * Simple JSON file-based database that replaces lowdb.
+ * Fully CommonJS compatible - no ESM imports needed.
+ */
+class SimpleJsonFile {
+    constructor(file, defaults) {
+        this.file = file;
+        this.data = defaults;
+    }
+
+    read() {
+        try {
+            if (fs.existsSync(this.file)) {
+                const raw = fs.readFileSync(this.file, 'utf8');
+                this.data = JSON.parse(raw);
+            }
+        } catch (err) {
+            console.error('Failed to read DB file:', err);
+        }
+    }
+
+    write() {
+        try {
+            fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2));
+        } catch (err) {
+            console.error('Failed to write DB file:', err);
+        }
+    }
+}
+
 class db_user {
     constructor(database_file) {
-        this._database_file = database_file;
-        this.db = null;
+        const file = path.join(__dirname, '..', database_file);
+        this.db = new SimpleJsonFile(file, { [info_field]: { SID: 0 }, users: {} });
+        this.db.read();
     }
 
     /**
-     * Async initialization - must be called after constructor
-     * Dynamically imports ESM-only lowdb modules
-     */
-    async init() {
-        const { Low } = await import('lowdb');
-        const { JSONFile } = await import('lowdb/node');
-        const file = path.join(__dirname, '..', this._database_file);
-        const adapter = new JSONFile(file);
-        this.db = new Low(adapter, { [info_field]: { SID: 0 }, users: {} });
-
-        try {
-            await this.db.read();
-        } catch (err) {
-            console.error('Failed to initialize DB:', err);
-        }
-    }
-
-    /**
-     * Add or update a user record (async)
+     * Add a user record
      * @param {string} user_email - Email as the user key
      * @param {object} user_data - User data { sid, pwd, prm, isadmin }
-     * @returns {Promise<void>} - Resolves when record is added
      */
-    async fn_add_record(user_email, user_data, fn_callback) {
+    fn_add_record(user_email, user_data, fn_callback) {
         if (!user_data || user_email === info_field) {
             return;
         }
 
-        // Validate required fields (sid, pwd, prm) to match data structure
         if (!user_data.sid || !user_data.pwd || !user_data.prm) {
             return;
         }
 
-        // Set default isadmin if not provided
         user_data.isadmin = user_data.isadmin ?? false;
-
-        // Optional: Hash password (uncomment to enable)
-        // user_data.pwd = await bcrypt.hash(user_data.pwd, 10);
 
         if (this.db.data.users[user_email]) {
-            // record already exists
             let c_reply = {};
-            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] =  "Duplicate entry.";
-            c_reply[global.c_CONSTANTS.CONST_ERROR] =  global.c_CONSTANTS.CONST_ERROR_DATA_DATABASE_ERROR;
+            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] = "Duplicate entry.";
+            c_reply[global.c_CONSTANTS.CONST_ERROR] = global.c_CONSTANTS.CONST_ERROR_DATA_DATABASE_ERROR;
             if (fn_callback) fn_callback(c_reply);
             return;
         }
-        
+
         this.db.data.users[user_email] = user_data;
-        try {
-            await this.db.write();
-        } catch (err) {
-            
-            console.error('Failed to write record:', err);
-
-            let c_reply = {};
-            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] =  "Storage Error.";
-            c_reply[global.c_CONSTANTS.CONST_ERROR] =  global.c_CONSTANTS.CONST_ERROR_DATA_DATABASE_ERROR;
-            if (fn_callback) fn_callback(c_reply);
-        }
-
+        this.db.write();
 
         let c_reply = {};
         c_reply[global.c_CONSTANTS.CONST_ERROR.toString()] = global.c_CONSTANTS.CONST_ERROR_NON;
         if (fn_callback) fn_callback(c_reply);
-            
     }
 
-
     /**
-     * Add or update a user record (async)
+     * Update a user record
      * @param {string} user_email - Email as the user key
      * @param {object} user_data - User data { sid, pwd, prm, isadmin }
-     * @returns {Promise<void>} - Resolves when record is added
      */
-    async fn_update_record(user_email, user_data, fn_callback) {
+    fn_update_record(user_email, user_data, fn_callback) {
         if (!user_data || user_email === info_field) {
             return;
         }
 
-        // Validate required fields (sid, pwd, prm) to match data structure
         if (!user_data.sid || !user_data.pwd || !user_data.prm) {
             return;
         }
 
-        // Set default isadmin if not provided
         user_data.isadmin = user_data.isadmin ?? false;
 
-        // Optional: Hash password (uncomment to enable)
-        // user_data.pwd = await bcrypt.hash(user_data.pwd, 10);
-
         if (!this.db.data.users[user_email]) {
-            // record already exists
             let c_reply = {};
-            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] =  "Account Not Found.";
-            c_reply[global.c_CONSTANTS.CONST_ERROR] =  global.c_CONSTANTS.CONST_ERROR_ACCOUNT_NOT_FOUND;
+            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] = "Account Not Found.";
+            c_reply[global.c_CONSTANTS.CONST_ERROR] = global.c_CONSTANTS.CONST_ERROR_ACCOUNT_NOT_FOUND;
             if (fn_callback) fn_callback(c_reply);
             return;
         }
-        
+
         this.db.data.users[user_email] = user_data;
-        try {
-            await this.db.write();
-        } catch (err) {
-            
-            console.error('Failed to write record:', err);
-
-            let c_reply = {};
-            c_reply[global.c_CONSTANTS.CONST_ERROR_MSG] =  "Storage Error.";
-            c_reply[global.c_CONSTANTS.CONST_ERROR] =  global.c_CONSTANTS.CONST_ERROR_DATA_DATABASE_ERROR;
-            if (fn_callback) fn_callback(c_reply);
-        }
-
+        this.db.write();
 
         let c_reply = {};
         c_reply[global.c_CONSTANTS.CONST_ERROR.toString()] = global.c_CONSTANTS.CONST_ERROR_NON;
         if (fn_callback) fn_callback(c_reply);
-            
     }
 
-
     /**
-     * Get all user keys (email addresses, excluding info_field)
+     * Get all user keys (email addresses)
      * @returns {string[]} - Array of user emails
      */
     fn_get_keys() {
@@ -143,20 +115,15 @@ class db_user {
     }
 
     /**
-     * Delete a user record by email (async)
+     * Delete a user record by email
      * @param {string} key - Email of the user to delete
-     * @returns {Promise<void>} - Resolves when record is deleted
      */
-    async fn_delete_record(key) {
+    fn_delete_record(key) {
         if (key === info_field || !this.db.data.users[key]) {
             return;
         }
         delete this.db.data.users[key];
-        try {
-            await this.db.write();
-        } catch (err) {
-            console.error('Failed to delete record:', err);
-        }
+        this.db.write();
     }
 
     /**
@@ -183,14 +150,12 @@ class db_user {
     }
 
     /**
-     * Get a user by password (access code) (async)
+     * Get a user by password (access code)
      * @param {string} accesscode - The password to match
-     * @returns {Promise<object|null>} - User record with email as acc property or null
+     * @returns {object|null} - User record with email as acc property or null
      */
     fn_get_user_by_accesscode(accesscode) {
         for (const [email, user] of Object.entries(this.db.data.users)) {
-            // Optional: Uncomment for bcrypt comparison
-            // if (await bcrypt.compare(accesscode, user.pwd)) {
             if (user.pwd === accesscode) {
                 return { ...user, acc: email };
             }
@@ -214,15 +179,10 @@ class db_user {
     }
 
     /**
-     * Sync database to disk (async)
-     * @returns {Promise<void>} - Resolves when synced
+     * Sync database to disk
      */
-    async fn_sync_to_disk() {
-        try {
-            await this.db.write();
-        } catch (err) {
-            console.error('Failed to sync to disk:', err);
-        }
+    fn_sync_to_disk() {
+        this.db.write();
     }
 }
 

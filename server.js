@@ -191,7 +191,7 @@ function fn_parseArgs()
 /**
  * start parsing input and lauch app.
  */
-async function fn_start ()
+function fn_start ()
 {
     // parse input arguments
     fn_parseArgs();
@@ -205,7 +205,7 @@ async function fn_start ()
 
 
     // start auth server
-    await global.m_authServer.fn_startServer ();
+    global.m_authServer.fn_startServer ();
 
     // load express server
 	fn_startExpressServer();
