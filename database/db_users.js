@@ -1,7 +1,5 @@
 "use strict";
 
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node');
 const path = require('path');
 // Optional: Uncomment for password hashing
 // const bcrypt = require('bcrypt');
@@ -10,15 +8,23 @@ const info_field = 'db_info';
 
 class db_user {
     constructor(database_file) {
-        // Initialize LowDB with JSONFile adapter
-        const file = path.join(__dirname, '..', database_file);
+        this._database_file = database_file;
+        this.db = null;
+    }
+
+    /**
+     * Async initialization - must be called after constructor
+     * Dynamically imports ESM-only lowdb modules
+     */
+    async init() {
+        const { Low } = await import('lowdb');
+        const { JSONFile } = await import('lowdb/node');
+        const file = path.join(__dirname, '..', this._database_file);
         const adapter = new JSONFile(file);
         this.db = new Low(adapter, { [info_field]: { SID: 0 }, users: {} });
 
-        // Synchronous read in constructor to match original behavior
-        // Note: Use try-catch to handle potential errors
         try {
-            this.db.read();
+            await this.db.read();
         } catch (err) {
             console.error('Failed to initialize DB:', err);
         }

@@ -11,20 +11,21 @@ var m_dbPool;
 /**
  * Initalize database connection for database manager
  */
-function fn_initialize()
+async function fn_initialize()
 {
     const fs = require('fs');
 
     if (m_serverconfig.m_configuration.account_storage_type.toLowerCase() === 'single') {
         return ;
-    } 
+    }
 
     if (m_serverconfig.m_configuration.account_storage_type.toLowerCase() === 'file') {
         if (m_serverconfig.m_configuration.hasOwnProperty('db_users') === true) {
             // users database
             global.db_users = new v_users.db_user(global.m_serverconfig.m_configuration.db_users);
+            await global.db_users.init();
             console.log ("Users Database File  " + global.Colors.BSuccess + global.m_serverconfig.m_configuration.db_users + global.Colors.Reset);
-            if (!fs.existsSync(global.m_serverconfig.m_configuration.db_users)) { 
+            if (!fs.existsSync(global.m_serverconfig.m_configuration.db_users)) {
                 console.log (global.Colors.Error +  "File Not Found"  + global.Colors.Reset);
             }
             return;
